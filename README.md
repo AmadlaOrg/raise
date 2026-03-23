@@ -52,4 +52,4 @@ The license for the code and documentation can be found in the [LICENSE](./LICEN
 
 ---
 
-Made in Québec 🏴󠁣󠁡󠁱󠁣󠁿, C 🇨🇦!
+Made in Québec 🏴󠁣󠁡󠁱anada󠁣󠁿, C 🇨🇦!
