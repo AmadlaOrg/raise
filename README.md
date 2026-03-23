@@ -1,4 +1,6 @@
-# raise
+<img src=".assets/Aeneas_and_Mercury.png" alt="Electronics photo" style="width: 400px;" align="right">
+
+# `raise`
 
 Infrastructure provisioning CLI with raise-* plugins.
 
@@ -40,3 +42,14 @@ Raise discovers plugins by scanning PATH for binaries matching `raise-*`. Each p
 - `raise-hetzner` - Hetzner Cloud provider
 - `raise-digitalocean` - DigitalOcean provider
 - `raise-opentofu` - OpenTofu provider
+
+## Copyright
+- "<a rel="noopener noreferrer" href="https://www.metmuseum.org/art/collection/search/380572">Aeneas and Mercury (from &#039;The Works of Virgil: Containing his Pastorals, Georgics and Aeneis,&#039; 1697)</a>" by Wenceslaus Hollar is marked with <a rel="noopener noreferrer" href="https://creativecommons.org/publicdomain/zero/1.0/?ref=openverse">CC0 1.0 <img src="https://mirrors.creativecommons.org/presskit/icons/cc.svg" style="height: 1em; margin-right: 0.125em; display: inline;" /><img src="https://mirrors.creativecommons.org/presskit/icons/zero.svg" style="height: 1em; margin-right: 0.125em; display: inline;" /></a>.
+
+## License
+
+The license for the code and documentation can be found in the [LICENSE](./LICENSE) file.
+
+---
+
+Made in Québec 🏴󠁣󠁡󠁱󠁣󠁿, Canada 🇨!
