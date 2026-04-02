@@ -8,22 +8,22 @@ Infrastructure provisioning CLI with raise-* plugins.
 
 ```bash
 # Provision infrastructure
-raise up myvm --from libvirt -f infrastructure.yaml
+raise up myvm --provider libvirt -f infrastructure.yaml
 
 # Stop infrastructure
-raise halt myvm --from libvirt
+raise halt myvm --provider libvirt
 
 # Destroy infrastructure
-raise destroy myvm --from libvirt
+raise destroy myvm --provider libvirt
 
 # SSH into infrastructure
-raise ssh myvm --from libvirt
+raise ssh myvm --provider libvirt
 
 # Show status (all providers)
 raise status
 
 # Show status (specific provider)
-raise status --from libvirt
+raise status --provider libvirt
 
 # List discovered plugins
 raise plugins

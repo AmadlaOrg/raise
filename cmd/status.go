@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	statusFrom string
+	statusProvider string
 
 	statusPluginNew = plugin.New
 
@@ -17,23 +17,23 @@ var (
 	StatusCmd = &cobra.Command{
 		Use:   "status",
 		Short: "Show infrastructure status",
-		Long:  "Shows status of managed infrastructure. If --from is specified, queries a single provider; otherwise queries all discovered plugins.",
+		Long:  "Shows status of managed infrastructure. If --provider is specified, queries a single provider; otherwise queries all discovered plugins.",
 		RunE:  runStatus,
 	}
 )
 
 func init() {
-	StatusCmd.Flags().StringVar(&statusFrom, "from", "", "Provider plugin name (optional; queries all if omitted)")
+	StatusCmd.Flags().StringVar(&statusProvider, "provider", "", "Provider plugin name (optional; queries all if omitted)")
 }
 
 func runStatus(cmd *cobra.Command, args []string) error {
 	svc := statusPluginNew()
 
-	if statusFrom != "" {
-		pluginName := "raise-" + statusFrom
+	if statusProvider != "" {
+		pluginName := "raise-" + statusProvider
 		code, err := svc.Exec(pluginName, []string{"status"}, os.Stdin, os.Stdout, os.Stderr)
 		if err != nil {
-			return fmt.Errorf("failed to get status from %s: %w", statusFrom, err)
+			return fmt.Errorf("failed to get status from %s: %w", statusProvider, err)
 		}
 		if code != 0 {
 			os.Exit(code)

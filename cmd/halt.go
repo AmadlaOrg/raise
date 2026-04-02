@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	haltFrom string
+	haltProvider string
 
 	haltPluginNew = plugin.New
 
@@ -17,19 +17,19 @@ var (
 	HaltCmd = &cobra.Command{
 		Use:   "halt [name]",
 		Short: "Stop infrastructure using a raise plugin",
-		Long:  "Stops (halts) infrastructure by delegating to the specified raise-* plugin (--from flag).",
+		Long:  "Stops (halts) infrastructure by delegating to the specified raise-* plugin (--provider flag).",
 		Args:  cobra.MaximumNArgs(1),
 		RunE:  runHalt,
 	}
 )
 
 func init() {
-	HaltCmd.Flags().StringVar(&haltFrom, "from", "", "Provider plugin name (e.g. libvirt, virtualbox, aws)")
-	_ = HaltCmd.MarkFlagRequired("from")
+	HaltCmd.Flags().StringVar(&haltProvider, "provider", "", "Provider plugin name (e.g. libvirt, virtualbox, aws)")
+	_ = HaltCmd.MarkFlagRequired("provider")
 }
 
 func runHalt(cmd *cobra.Command, args []string) error {
-	pluginName := "raise-" + haltFrom
+	pluginName := "raise-" + haltProvider
 
 	pluginArgs := []string{"halt"}
 	if len(args) > 0 {

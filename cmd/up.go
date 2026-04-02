@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	upFrom     string
+	upProvider     string
 	upFilePath string
 
 	upPluginNew   = plugin.New
@@ -20,24 +20,24 @@ var (
 	UpCmd = &cobra.Command{
 		Use:   "up [name]",
 		Short: "Provision infrastructure using a raise plugin",
-		Long:  "Provisions infrastructure by delegating to the specified raise-* plugin (--from flag).",
+		Long:  "Provisions infrastructure by delegating to the specified raise-* plugin (--provider flag).",
 		Args:  cobra.MaximumNArgs(1),
 		RunE:  runUp,
 	}
 )
 
 func init() {
-	UpCmd.Flags().StringVar(&upFrom, "from", "", "Provider plugin name (e.g. libvirt, virtualbox, aws); auto-detected from entity file if omitted")
+	UpCmd.Flags().StringVar(&upProvider, "provider", "", "Provider plugin name (e.g. libvirt, virtualbox, aws); auto-detected from entity file if omitted")
 	UpCmd.Flags().StringVarP(&upFilePath, "file", "f", "", "Infrastructure definition file (YAML or JSON)")
 }
 
 func runUp(cmd *cobra.Command, args []string) error {
-	provider := upFrom
+	provider := upProvider
 
-	// Auto-detect provider from entity file if --from is not specified.
+	// Auto-detect provider from entity file if --provider is not specified.
 	if provider == "" {
 		if upFilePath == "" {
-			return fmt.Errorf("either --from or -f must be specified")
+			return fmt.Errorf("either --provider or -f must be specified")
 		}
 		p, err := upReadProvider(upFilePath)
 		if err != nil {

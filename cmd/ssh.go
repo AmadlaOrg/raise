@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	sshFrom string
+	sshProvider string
 
 	sshLookPath = exec.LookPath
 
@@ -18,19 +18,19 @@ var (
 	SSHCmd = &cobra.Command{
 		Use:   "ssh [name]",
 		Short: "SSH into infrastructure using a raise plugin",
-		Long:  "Opens an interactive SSH session by replacing the current process with the raise-* plugin's ssh command.",
+		Long:  "Opens an interactive SSH session by replacing the current process with the raise-* plugin's ssh command (--provider flag).",
 		Args:  cobra.MaximumNArgs(1),
 		RunE:  runSSH,
 	}
 )
 
 func init() {
-	SSHCmd.Flags().StringVar(&sshFrom, "from", "", "Provider plugin name (e.g. libvirt, virtualbox, aws)")
-	_ = SSHCmd.MarkFlagRequired("from")
+	SSHCmd.Flags().StringVar(&sshProvider, "provider", "", "Provider plugin name (e.g. libvirt, virtualbox, aws)")
+	_ = SSHCmd.MarkFlagRequired("provider")
 }
 
 func runSSH(cmd *cobra.Command, args []string) error {
-	pluginName := "raise-" + sshFrom
+	pluginName := "raise-" + sshProvider
 
 	pluginPath, err := sshLookPath(pluginName)
 	if err != nil {

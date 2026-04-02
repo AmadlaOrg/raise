@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	destroyFrom string
+	destroyProvider string
 
 	destroyPluginNew = plugin.New
 
@@ -17,19 +17,19 @@ var (
 	DestroyCmd = &cobra.Command{
 		Use:   "destroy [name]",
 		Short: "Destroy infrastructure using a raise plugin",
-		Long:  "Destroys infrastructure by delegating to the specified raise-* plugin (--from flag).",
+		Long:  "Destroys infrastructure by delegating to the specified raise-* plugin (--provider flag).",
 		Args:  cobra.MaximumNArgs(1),
 		RunE:  runDestroy,
 	}
 )
 
 func init() {
-	DestroyCmd.Flags().StringVar(&destroyFrom, "from", "", "Provider plugin name (e.g. libvirt, virtualbox, aws)")
-	_ = DestroyCmd.MarkFlagRequired("from")
+	DestroyCmd.Flags().StringVar(&destroyProvider, "provider", "", "Provider plugin name (e.g. libvirt, virtualbox, aws)")
+	_ = DestroyCmd.MarkFlagRequired("provider")
 }
 
 func runDestroy(cmd *cobra.Command, args []string) error {
-	pluginName := "raise-" + destroyFrom
+	pluginName := "raise-" + destroyProvider
 
 	pluginArgs := []string{"destroy"}
 	if len(args) > 0 {
