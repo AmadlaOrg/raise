@@ -83,7 +83,7 @@ func (s *service) GetInfo(pluginName string) (*Info, error) {
 		return nil, fmt.Errorf("plugin %s not found in PATH: %w", pluginName, err)
 	}
 
-	cmd := execCommand(path, "info")
+	cmd := execCommand(path, "info", "-o", "json")
 	cmd.Stderr = os.Stderr
 	out, err := cmd.Output()
 	if err != nil {

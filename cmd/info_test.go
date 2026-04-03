@@ -41,28 +41,16 @@ func (m *mockPluginService) Exec(pluginName string, args []string, stdin io.Read
 	return 0, nil
 }
 
-func TestRunInfo_AggregatesPluginEntityTypes(t *testing.T) {
-	mock := &mockPluginService{
-		discoverResult: []string{"raise-libvirt", "raise-aws"},
-		infoResults: map[string]*plugin.Info{
-			"raise-libvirt": {
-				Name:     "raise-libvirt",
-				Version:  "1.0.0",
-				Engine:   "libvirt",
-				Supports: []string{"amadla.org/entity/infrastructure@v1.0.0", "amadla.org/entity/infrastructure/vm@v1.0.0"},
-			},
-			"raise-aws": {
-				Name:     "raise-aws",
-				Version:  "1.0.0",
-				Engine:   "aws",
-				Supports: []string{"amadla.org/entity/infrastructure@v1.0.0", "amadla.org/entity/infrastructure/cloud/compute@v1.0.0"},
-			},
-		},
-	}
+func TestRunInfo_OutputsRaiseMetadata(t *testing.T) {
+	mock := &mockPluginService{}
 
 	origNew := infoPluginNew
 	defer func() { infoPluginNew = origNew }()
 	infoPluginNew = func() plugin.Service { return mock }
+
+	origFlag := infoOutputFlag
+	defer func() { infoOutputFlag = origFlag }()
+	infoOutputFlag = "json"
 
 	var stdout bytes.Buffer
 	cmd := InfoCmd
@@ -78,27 +66,36 @@ func TestRunInfo_AggregatesPluginEntityTypes(t *testing.T) {
 
 	assert.Equal(t, "raise", info.Name)
 	assert.Equal(t, raiseVersion, info.Version)
-	assert.Contains(t, info.EntityTypes, "amadla.org/entity/infrastructure@v1.0.0")
-	assert.Contains(t, info.EntityTypes, "amadla.org/entity/infrastructure/vm@v1.0.0")
-	assert.Contains(t, info.EntityTypes, "amadla.org/entity/infrastructure/cloud/compute@v1.0.0")
-	// No duplicates — infrastructure@v1.0.0 appears once despite both plugins reporting it.
-	count := 0
-	for _, et := range info.EntityTypes {
-		if et == "amadla.org/entity/infrastructure@v1.0.0" {
-			count++
-		}
-	}
-	assert.Equal(t, 1, count)
+	assert.Equal(t, "Infrastructure provisioning with raise-* plugins", info.Description)
+	assert.Equal(t, []string{"amadla.org/entity/infrastructure@^v1.0.0"}, info.Supports)
 }
 
-func TestRunInfo_NoPlugins(t *testing.T) {
+func TestRunInfo_DoesNotAggregatePluginTypes(t *testing.T) {
 	mock := &mockPluginService{
-		discoverResult: nil,
+		discoverResult: []string{"raise-libvirt", "raise-aws"},
+		infoResults: map[string]*plugin.Info{
+			"raise-libvirt": {
+				Name:     "raise-libvirt",
+				Version:  "1.0.0",
+				Engine:   "libvirt",
+				Supports: []string{"amadla.org/entity/infrastructure@^v1.0.0", "amadla.org/entity/infrastructure/vm@^v1.0.0"},
+			},
+			"raise-aws": {
+				Name:     "raise-aws",
+				Version:  "1.0.0",
+				Engine:   "aws",
+				Supports: []string{"amadla.org/entity/infrastructure@^v1.0.0", "amadla.org/entity/infrastructure/cloud@^v1.0.0"},
+			},
+		},
 	}
 
 	origNew := infoPluginNew
 	defer func() { infoPluginNew = origNew }()
 	infoPluginNew = func() plugin.Service { return mock }
+
+	origFlag := infoOutputFlag
+	defer func() { infoOutputFlag = origFlag }()
+	infoOutputFlag = "json"
 
 	var stdout bytes.Buffer
 	cmd := InfoCmd
@@ -112,34 +109,57 @@ func TestRunInfo_NoPlugins(t *testing.T) {
 	err = json.Unmarshal(stdout.Bytes(), &info)
 	require.NoError(t, err)
 
-	assert.Equal(t, []string{"amadla.org/entity/infrastructure@v1.0.0"}, info.EntityTypes)
+	// raise core only declares its own entity type, not plugin sub-types
+	assert.Equal(t, []string{"amadla.org/entity/infrastructure@^v1.0.0"}, info.Supports)
+	assert.NotContains(t, info.Supports, "amadla.org/entity/infrastructure/vm@^v1.0.0")
+	assert.NotContains(t, info.Supports, "amadla.org/entity/infrastructure/cloud@^v1.0.0")
 }
 
-func TestRunInfo_PluginInfoError(t *testing.T) {
-	mock := &mockPluginService{
-		discoverResult: []string{"raise-broken"},
-		infoErrs: map[string]error{
-			"raise-broken": fmt.Errorf("connection refused"),
-		},
-	}
+func TestRunInfo_DefaultTableFormat(t *testing.T) {
+	mock := &mockPluginService{}
 
 	origNew := infoPluginNew
 	defer func() { infoPluginNew = origNew }()
 	infoPluginNew = func() plugin.Service { return mock }
 
-	var stdout, stderr bytes.Buffer
+	origFlag := infoOutputFlag
+	defer func() { infoOutputFlag = origFlag }()
+	infoOutputFlag = "table"
+
+	var stdout bytes.Buffer
 	cmd := InfoCmd
 	cmd.SetOut(&stdout)
-	cmd.SetErr(&stderr)
 	cmd.SetArgs([]string{})
 
 	err := cmd.Execute()
 	require.NoError(t, err)
 
-	var info RaiseInfo
-	err = json.Unmarshal(stdout.Bytes(), &info)
+	output := stdout.String()
+	assert.Contains(t, output, "raise")
+	assert.Contains(t, output, raiseVersion)
+}
+
+func TestRunInfo_YAMLFormat(t *testing.T) {
+	mock := &mockPluginService{}
+
+	origNew := infoPluginNew
+	defer func() { infoPluginNew = origNew }()
+	infoPluginNew = func() plugin.Service { return mock }
+
+	origFlag := infoOutputFlag
+	defer func() { infoOutputFlag = origFlag }()
+	infoOutputFlag = "yaml"
+
+	var stdout bytes.Buffer
+	cmd := InfoCmd
+	cmd.SetOut(&stdout)
+	cmd.SetArgs([]string{})
+
+	err := cmd.Execute()
 	require.NoError(t, err)
 
-	// Still returns raise's own entity type even if plugin fails.
-	assert.Equal(t, []string{"amadla.org/entity/infrastructure@v1.0.0"}, info.EntityTypes)
+	output := stdout.String()
+	assert.Contains(t, output, "name: raise")
+	assert.Contains(t, output, "version:")
+	assert.Contains(t, output, "supports:")
 }

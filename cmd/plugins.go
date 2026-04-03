@@ -5,12 +5,12 @@ import (
 	"os"
 
 	"github.com/AmadlaOrg/raise/plugin"
-	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
 )
 
 var (
-	pluginsNew = plugin.New
+	pluginsNew        = plugin.New
+	pluginsOutputFlag string
 
 	// PluginsCmd lists all discovered raise plugins.
 	PluginsCmd = &cobra.Command{
@@ -19,6 +19,10 @@ var (
 		RunE:  runPlugins,
 	}
 )
+
+func init() {
+	PluginsCmd.Flags().StringVarP(&pluginsOutputFlag, "output", "o", "table", "Output format: table, json, yaml")
+}
 
 func runPlugins(cmd *cobra.Command, args []string) error {
 	svc := pluginsNew()
@@ -33,18 +37,26 @@ func runPlugins(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	table := tablewriter.NewWriter(os.Stdout)
-	table.Header("Plugin", "Engine", "Version", "Description")
-
+	var rows []pluginRow
 	for _, name := range plugins {
 		info, err := svc.GetInfo(name)
 		if err != nil {
-			table.Append(name, "?", "?", fmt.Sprintf("error: %v", err))
+			rows = append(rows, pluginRow{
+				Plugin:      name,
+				Engine:      "?",
+				Version:     "?",
+				Description: fmt.Sprintf("error: %v", err),
+			})
 			continue
 		}
-		table.Append(name, info.Engine, info.Version, info.Description)
+		rows = append(rows, pluginRow{
+			Plugin:      name,
+			Engine:      info.Engine,
+			Version:     info.Version,
+			Description: info.Description,
+		})
 	}
 
-	table.Render()
-	return nil
+	f := parseFormat(pluginsOutputFlag)
+	return writePluginsTable(os.Stdout, f, rows)
 }
