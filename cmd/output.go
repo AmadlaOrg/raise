@@ -98,3 +98,42 @@ type pluginRow struct {
 	Version     string `json:"version" yaml:"version"`
 	Description string `json:"description" yaml:"description"`
 }
+
+// heryEnvelope ensures _type is serialized before _body in both JSON and YAML.
+type heryEnvelope struct {
+	Type string `json:"_type" yaml:"_type"`
+	Body any    `json:"_body" yaml:"_body"`
+}
+
+func writeHeryInfoOutput(w io.Writer, f format, data any) error {
+	return writeHeryEnvelope(w, f, "amadla.org/entity/tools/info@v1.0.0", data)
+}
+
+func writeHeryPluginsOutput(w io.Writer, f format, data any) error {
+	return writeHeryEnvelope(w, f, "amadla.org/entity/tools/plugins@v1.0.0", data)
+}
+
+func writeHeryEnvelope(w io.Writer, f format, entityType string, data any) error {
+	envelope := heryEnvelope{
+		Type: entityType,
+		Body: data,
+	}
+
+	switch f {
+	case formatJSON:
+		return writeJSON(w, envelope)
+	case formatTable:
+		// Render _type as header, then table for _body
+		fmt.Fprintf(w, "_type: %s\n\n", entityType)
+		switch v := data.(type) {
+		case RaiseInfo:
+			return writeInfoTable(w, v)
+		case []pluginRow:
+			return writePluginsTable(w, formatTable, v)
+		default:
+			return writeYAML(w, data)
+		}
+	default:
+		return writeYAML(w, envelope)
+	}
+}

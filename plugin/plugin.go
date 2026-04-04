@@ -76,7 +76,14 @@ func (s *service) Discover() ([]string, error) {
 	return plugins, nil
 }
 
+// heryEnvelope represents a HERY-wrapped response with _type and _body.
+type heryEnvelope struct {
+	Type string          `json:"_type"`
+	Body json.RawMessage `json:"_body"`
+}
+
 // GetInfo calls a plugin's info subcommand and parses the JSON response.
+// Supports both flat JSON and HERY-wrapped JSON (with _type and _body).
 func (s *service) GetInfo(pluginName string) (*Info, error) {
 	path, err := execLookPath(pluginName)
 	if err != nil {
@@ -90,6 +97,17 @@ func (s *service) GetInfo(pluginName string) (*Info, error) {
 		return nil, fmt.Errorf("failed to get info from %s: %w", pluginName, err)
 	}
 
+	// Try HERY envelope first
+	var envelope heryEnvelope
+	if err := json.Unmarshal(out, &envelope); err == nil && envelope.Type != "" && envelope.Body != nil {
+		var info Info
+		if err := json.Unmarshal(envelope.Body, &info); err != nil {
+			return nil, fmt.Errorf("failed to parse HERY _body from %s: %w", pluginName, err)
+		}
+		return &info, nil
+	}
+
+	// Fall back to flat JSON
 	var info Info
 	if err := json.Unmarshal(out, &info); err != nil {
 		return nil, fmt.Errorf("failed to parse info from %s: %w", pluginName, err)

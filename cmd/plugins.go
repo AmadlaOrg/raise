@@ -11,6 +11,7 @@ import (
 var (
 	pluginsNew        = plugin.New
 	pluginsOutputFlag string
+	pluginsHeryFlag   bool
 
 	// PluginsCmd lists all discovered raise plugins.
 	PluginsCmd = &cobra.Command{
@@ -22,6 +23,7 @@ var (
 
 func init() {
 	PluginsCmd.Flags().StringVarP(&pluginsOutputFlag, "output", "o", "table", "Output format: table, json, yaml")
+	PluginsCmd.Flags().BoolVar(&pluginsHeryFlag, "hery", false, "Wrap output in HERY envelope (_type, _body)")
 }
 
 func runPlugins(cmd *cobra.Command, args []string) error {
@@ -58,5 +60,8 @@ func runPlugins(cmd *cobra.Command, args []string) error {
 	}
 
 	f := parseFormat(pluginsOutputFlag)
+	if pluginsHeryFlag {
+		return writeHeryPluginsOutput(os.Stdout, f, rows)
+	}
 	return writePluginsTable(os.Stdout, f, rows)
 }

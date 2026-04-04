@@ -20,6 +20,7 @@ type RaiseInfo struct {
 var (
 	infoPluginNew  = plugin.New
 	infoOutputFlag string
+	infoHeryFlag   bool
 
 	// InfoCmd outputs raise metadata.
 	InfoCmd = &cobra.Command{
@@ -32,6 +33,7 @@ var (
 
 func init() {
 	InfoCmd.Flags().StringVarP(&infoOutputFlag, "output", "o", "table", "Output format: table, json, yaml")
+	InfoCmd.Flags().BoolVar(&infoHeryFlag, "hery", false, "Wrap output in HERY envelope (_type, _body)")
 }
 
 func runInfo(cmd *cobra.Command, args []string) error {
@@ -46,5 +48,8 @@ func runInfo(cmd *cobra.Command, args []string) error {
 
 	svc := infoPluginNew()
 	format := parseFormat(infoOutputFlag)
+	if infoHeryFlag {
+		return writeHeryInfoOutput(cmd.OutOrStdout(), format, out)
+	}
 	return writeOutput(cmd.OutOrStdout(), format, out, svc)
 }
