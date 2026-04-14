@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"syscall"
 
 	"github.com/spf13/cobra"
 )
@@ -42,6 +41,10 @@ func runSSH(cmd *cobra.Command, args []string) error {
 		execArgs = append(execArgs, args[0])
 	}
 
-	// Replace the current process with the plugin for interactive SSH.
-	return syscall.Exec(pluginPath, execArgs, os.Environ())
+	// Run the plugin for interactive SSH.
+	sshCmd := exec.Command(pluginPath, execArgs[1:]...)
+	sshCmd.Stdin = os.Stdin
+	sshCmd.Stdout = os.Stdout
+	sshCmd.Stderr = os.Stderr
+	return sshCmd.Run()
 }
