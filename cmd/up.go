@@ -1,7 +1,9 @@
 package cmd
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"os"
 
 	"github.com/AmadlaOrg/raise/entity"
@@ -10,11 +12,12 @@ import (
 )
 
 var (
-	upProvider     string
+	upProvider string
 	upFilePath string
 
-	upPluginNew   = plugin.New
-	upReadProvider = entity.ReadProvider
+	upPluginNew            = plugin.New
+	upReadProvider         = entity.ReadProvider
+	upReadProviderFromData = entity.ReadProviderFromData
 
 	// UpCmd provisions infrastructure via a raise plugin.
 	UpCmd = &cobra.Command{
@@ -33,17 +36,39 @@ func init() {
 
 func runUp(cmd *cobra.Command, args []string) error {
 	provider := upProvider
+	stdin := io.Reader(os.Stdin)
 
-	// Auto-detect provider from entity file if --provider is not specified.
-	if provider == "" {
-		if upFilePath == "" {
-			return fmt.Errorf("either --provider or -f must be specified")
-		}
-		p, err := upReadProvider(upFilePath)
+	// With -f -, the definition arrives on stdin (e.g. piped from
+	// `hery compose --dir`); buffer it so the provider can be sniffed before
+	// the bytes are handed to the plugin.
+	var stdinData []byte
+	if upFilePath == "-" {
+		data, err := io.ReadAll(os.Stdin)
 		if err != nil {
-			return fmt.Errorf("failed to detect provider from entity file: %w", err)
+			return fmt.Errorf("failed to read stdin: %w", err)
 		}
-		provider = p
+		stdinData = data
+		stdin = bytes.NewReader(stdinData)
+	}
+
+	// Auto-detect provider from the entity input if --provider is not specified.
+	if provider == "" {
+		switch {
+		case upFilePath == "":
+			return fmt.Errorf("either --provider or -f must be specified")
+		case upFilePath == "-":
+			p, err := upReadProviderFromData(stdinData)
+			if err != nil {
+				return fmt.Errorf("failed to detect provider from stdin: %w", err)
+			}
+			provider = p
+		default:
+			p, err := upReadProvider(upFilePath)
+			if err != nil {
+				return fmt.Errorf("failed to detect provider from entity file: %w", err)
+			}
+			provider = p
+		}
 	}
 
 	pluginName := "raise-" + provider
@@ -57,7 +82,7 @@ func runUp(cmd *cobra.Command, args []string) error {
 	}
 
 	svc := upPluginNew()
-	code, err := svc.Exec(pluginName, pluginArgs, os.Stdin, os.Stdout, os.Stderr)
+	code, err := svc.Exec(pluginName, pluginArgs, stdin, os.Stdout, os.Stderr)
 	if err != nil {
 		return fmt.Errorf("failed to run up: %w", err)
 	}

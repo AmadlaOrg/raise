@@ -75,3 +75,74 @@ func TestReadProvider_InvalidYAML(t *testing.T) {
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to parse entity file")
 }
+
+func TestReadProviderFromData(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		provider string
+		wantErr  error
+	}{
+		{
+			name: "single infrastructure doc",
+			input: `_type: amadla.org/entity/infrastructure@v1.0.0
+_body:
+  provider: libvirt
+`,
+			provider: "libvirt",
+		},
+		{
+			name: "multi-doc graph with provider in first doc",
+			input: `---
+_type: amadla.org/entity/infrastructure@v1.0.0
+_body:
+  provider: libvirt
+  ssh:
+    user: root
+---
+_type: amadla.org/entity/infrastructure/vm@v1.0.0
+_body:
+  image: /iso/rocky.iso
+`,
+			provider: "libvirt",
+		},
+		{
+			name: "multi-doc graph with provider in later doc",
+			input: `---
+_type: amadla.org/entity/system@v1.0.0
+_body:
+  hostname: demo
+---
+_type: amadla.org/entity/infrastructure@v1.0.0
+_body:
+  provider: aws
+`,
+			provider: "aws",
+		},
+		{
+			name: "no provider anywhere",
+			input: `---
+_type: amadla.org/entity/system@v1.0.0
+_body:
+  hostname: demo
+`,
+			wantErr: ErrNoProvider,
+		},
+		{
+			name:    "empty input",
+			input:   "",
+			wantErr: ErrNoProvider,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			provider, err := ReadProviderFromData([]byte(tt.input))
+			if tt.wantErr != nil {
+				assert.ErrorIs(t, err, tt.wantErr)
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, tt.provider, provider)
+		})
+	}
+}
